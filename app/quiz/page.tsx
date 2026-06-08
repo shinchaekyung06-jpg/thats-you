@@ -9,28 +9,15 @@ const allQuestions = [...colorQuestions, ...aestheticQuestions];
 export default function QuizPage() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<(PersonalColor | AestheticType)[]>([]);
+  const [answers, setAnswers] = useState<(PersonalColor | AestheticType | PersonalColor[])[]>([]);
   const [isFading, setIsFading] = useState(false);
 
   const currentQuestion = allQuestions[currentIndex];
-  const progress = ((currentIndex + 1) / allQuestions.length) * 100;
 
   const handleSelect = (value: PersonalColor | AestheticType | PersonalColor[]) => {
     if (isFading) return;
 
-    let newAnswers: (PersonalColor | AestheticType)[] = [...answers];
-    
-    // Handle simplified accessory question (array value)
-    if (Array.isArray(value)) {
-      // For simplified choices, we add the first valid color or handle logic
-      // In this specific case, 'Silver' maps to both Cool tones. We pick one to count or handle weight.
-      // To keep it consistent with the previous logic, we'll push the first one or a placeholder.
-      // Let's push both to count equally in the calculation logic.
-      newAnswers = [...newAnswers, ...value];
-    } else {
-      newAnswers = [...newAnswers, value];
-    }
-    
+    const newAnswers = [...answers, value];
     setAnswers(newAnswers);
 
     if (currentIndex < allQuestions.length - 1) {
@@ -40,23 +27,24 @@ export default function QuizPage() {
         setIsFading(false);
       }, 400);
     } else {
-      const result = calculateResult(newAnswers);
+      const flattenedAnswers = newAnswers.flat();
+      const result = calculateResult(flattenedAnswers);
       router.push(`/result?color=${result.color}&aesthetic=${result.aesthetic}`);
     }
   };
 
   const handleBack = () => {
-    if (currentIndex > 0 && !isFading) {
+    if (isFading) return;
+
+    if (currentIndex > 0) {
       setIsFading(true);
       setTimeout(() => {
-        // Find the previous question to see how many answers to remove
-        const prevQuestion = allQuestions[currentIndex - 1];
-        const numToRemove = prevQuestion.id === 3 ? 2 : 1; // ID 3 is the accessory question with 2 values
-        
         setCurrentIndex(currentIndex - 1);
-        setAnswers(answers.slice(0, -numToRemove));
+        setAnswers(answers.slice(0, -1));
         setIsFading(false);
       }, 400);
+    } else {
+      router.push('/');
     }
   };
 
@@ -81,7 +69,7 @@ export default function QuizPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
+    <main className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-start md:justify-center px-6 py-20 relative overflow-x-hidden overflow-y-auto">
       {/* Dynamic Background */}
       <div className="fixed inset-0 pointer-events-none opacity-40 blur-[80px]">
         <div 
@@ -99,19 +87,17 @@ export default function QuizPage() {
 
       <div className="w-full max-w-xl relative z-10">
         {/* Navigation / Back Button */}
-        <div className="absolute -top-16 left-0 flex items-center gap-4">
-          {currentIndex > 0 && (
-            <button 
-              onClick={handleBack}
-              className="text-[10px] tracking-[0.4em] uppercase text-gray-400 hover:text-dusty-rose transition-colors flex items-center gap-2 group"
-            >
-              <span className="group-hover:-translate-x-1 transition-transform">←</span> Back
-            </button>
-          )}
+        <div className="flex items-center gap-4 mb-8 h-6">
+          <button 
+            onClick={handleBack}
+            className="text-[11px] tracking-[0.4em] uppercase text-gray-400 hover:text-dusty-rose transition-colors flex items-center gap-2 group font-medium"
+          >
+            <span className="group-hover:-translate-x-1 transition-transform">←</span> Back
+          </button>
         </div>
 
         {/* Progress Display */}
-        <div className="mb-16 text-center">
+        <div className="mb-12 text-center">
           <span className="text-[10px] tracking-[0.5em] uppercase text-gray-400 font-medium">
             Step {currentIndex + 1} of {allQuestions.length}
           </span>
